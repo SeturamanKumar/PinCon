@@ -1,0 +1,26 @@
+# General ignores for any project
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Client-specific ignores (Vite + React App)
+# Ignore the massive node_modules folder inside the client
+client/node_modules
+
+# Ignore the build output and cache folders for Vite
+client/dist
+client/.vite
+
+# Server-specific ignores (Node.js App)
+# We'll add this now for when we create the server later
+server/node_modules
+
+# IDE / Editor specific folders
+.vscode/
+.idea/
