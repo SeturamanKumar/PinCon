@@ -72,3 +72,26 @@
   text-align: center;
   color: #6c757d;
 }
+
+.image-grid{
+  column-count: 2;
+  column-gap: 1rem;
+}
+
+@media (min-width: 768px){
+  .image-grid{
+    column-count: 3;
+  }
+}
+
+@media (min-width: 1024px){
+  .image-grid{
+    column-count: 4;
+  }
+}
+
+@media (min-width: 1280px){
+  .image-grid{
+    column-count: 5;
+  }
+}

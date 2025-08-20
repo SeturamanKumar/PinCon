@@ -1,0 +1,36 @@
+.pin {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    cursor: pointer;
+    break-inside: avoid;
+    margin-bottom: 1rem;
+}
+
+.pin-image{
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+}
+
+.pin-overlay{
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 0.75rem;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.pin:hover .pin-overlay{
+    opacity: 1;
+}
+
+.pin-overlay p{
+    margin: 0;
+    font-size: 0.875rem;
+}
