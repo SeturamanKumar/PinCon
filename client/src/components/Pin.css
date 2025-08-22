@@ -1,0 +1,36 @@
+.pin-container{
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 1rem;
+    break-inside: avoid;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    cursor: pointer;
+}
+
+.pin-image{
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.pin-description{
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+    color: white;
+    padding: 1.5rem 0.75rem 0.75rem;
+    font-size: 0.875rem;
+    margin: 0;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.pin-container:hover .pin-description{
+    opacity: 1;
+}

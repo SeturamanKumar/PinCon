@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import './App.css';
+import { samplePins } from "./data/samplePins";
+import Pin from "./components/Pin";
 
 type User= {
   id: string;
@@ -9,7 +11,7 @@ type User= {
 
 function App() {
 
-  const [user, setUser] = useState<User | null>(undefined);
+  const [user, setUser] = useState<User | null | undefined>(undefined);
   
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -17,6 +19,7 @@ function App() {
         const response = await fetch('http://localhost:5001/api/auth/status', {
           credentials: 'include',
         });
+
         if(response.ok){
           const userData = await response.json();
           setUser(userData);
@@ -70,8 +73,9 @@ function App() {
       </header>
       <main className="main-content">
         <div className="image-grid">
-          {/* Image pins go here */}
-          <p>Image gallery coming soon...</p>
+          {samplePins.map((pin) => (
+            <Pin key={pin.id} pin={pin} />
+          ))}
         </div>
       </main>
     </div>
