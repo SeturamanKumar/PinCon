@@ -33,14 +33,29 @@ passport.use(new GoogleStrategy({
     },
     async (accessToken, refreshToken, profile, done) => {
         try {
+            if(!profile || !profile.emails || profile.emails.length === 0){
+                return done(new Error("Failed to get user profile from Google."));
+            }
+
+            const userEmail = profile.emails[0].value;
+            const userName = profile.displayName;
+
             let user = await prisma.user.findUnique({
-                where: { email: profile.email[0].value },
+                where: { email: userEmail },
             });
-            if(!user){
+
+            if(user){
+                if(!user.name){
+                    user = await prisma.user.update({
+                        where: { email: userEmail },
+                        data: { name: userName },
+                    });
+                }
+            } else {
                 user = await prisma.user.create({
                     data: {
-                        email: profile.emails[0].value,
-                        name: profile.desiplayNamek,
+                        email: userEmail,
+                        name: userName,
                     },
                 });
             }
