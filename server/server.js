@@ -7,7 +7,7 @@ const { PrismaClient } = require('@prisma/client');
 require('dotenv').config();
 
 const multer = require('multer');
-const coludinary = require('cloudinary').v2;
+const cloudinary = require('cloudinary').v2;
 const DatauriParser = require('datauri/parser');
 const path = require('path');
 
@@ -15,7 +15,7 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-coludinary.config({
+cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
@@ -140,7 +140,7 @@ app.get('/api/pins', async (req, res) => {
     }
 });
 
-app.post('/api/plus', isAuthenticated, multerUploads, async (req, res) => {
+app.post('/api/pins', isAuthenticated, multerUploads, async (req, res) => {
     const { description } = req.body;
 
     if(!req.file) {
@@ -149,7 +149,7 @@ app.post('/api/plus', isAuthenticated, multerUploads, async (req, res) => {
 
     try {
         const file = parser.format(path.extname(req.file.originalname).toString(), req.file.buffer).content;
-        const result = await coludinary.uploader.upload(file, {
+        const result = await cloudinary.uploader.upload(file, {
             folder: 'pincon',
         });
         const newPin = await prisma.pin.create({

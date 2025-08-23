@@ -1,38 +1,48 @@
 import React, { useState, useEffect } from "react";
 import './App.css';
-import { samplePins } from "./data/samplePins";
+// import { samplePins } from "./data/samplePins";
 import Pin from "./components/Pin";
+import UploadModal from "./components/UploadModal";
+
+export type PinType = {
+  id: string;
+  imageUrl: string;
+  description: string | null;
+  author: {
+    name: string | null;
+  };
+};
 
 type User= {
   id: string;
   name: string;
   email: string;
-}
+};
 
 function App() {
 
   const [user, setUser] = useState<User | null | undefined>(undefined);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [pins, setPins] = useState<PinType[]>([]);
   
   useEffect(() => {
-    const checkAuthStatus = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/auth/status', {
+        const authResponse = await fetch('http://localhost:5001/api/auth/status', {
           credentials: 'include',
         });
+        const userData = await authResponse.json();
+        setUser(userData);
 
-        if(response.ok){
-          const userData = await response.json();
-          setUser(userData);
-        } else {
-          setUser(null);
-        }
+        const pinsResponse = await fetch('http://localhost:5001/api/pins');
+        const pinsData = await pinsResponse.json();
+        setPins(pinsData);
       } catch (error) {
-        console.error("Error checking auth status:", error);
+        console.error("Error fetching data:", error);
         setUser(null);
       }
     };
-
-    checkAuthStatus();
+    fetchData();
   }, []);
 
   const handleLogin = () => {
@@ -63,9 +73,10 @@ function App() {
             {user && (
               <>
                 <span className="user-name">Welcome, {user.name}!</span>
-                <button onClick={handleLogout} className="btn btn-secondary">
-                  Logout
+                <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">
+                  Create
                 </button>
+                <button onClick={handleLogout} className="btn btn-secondary">Logout</button>
               </>
             )}
           </div>
@@ -73,11 +84,12 @@ function App() {
       </header>
       <main className="main-content">
         <div className="image-grid">
-          {samplePins.map((pin) => (
+          {pins.map((pin) => (
             <Pin key={pin.id} pin={pin} />
           ))}
         </div>
       </main>
+      {isModalOpen && <UploadModal onClose={() => setIsModalOpen(false)}/>}
     </div>
   );
 
