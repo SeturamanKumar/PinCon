@@ -2,18 +2,32 @@ const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
 const passport = require('passport');
-
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { PrismaClient } = require('@prisma/client');
 require('dotenv').config();
+
+const multer = require('multer');
+const coludinary = require('cloudinary').v2;
+const DatauriParser = require('datauri/parser');
+const path = require('path');
 
 const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+coludinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+})
+
+const storage = multer.memoryStorage();
+const multerUploads = multer({ storage }).single('image');
+const parser = new DatauriParser();
+
 app.use(cors({
     origin: 'http://localhost:5173',
-    credentials: true,  
+    credentials: true,
 }));
 app.use(express.json());
 app.use(session({
@@ -26,6 +40,15 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+
+const isAuthenticated = (req, res, next) => {
+    if(req.isAuthenticated()) {
+        return next();
+    }
+
+    res.status(401).json({ message: "You must be logged in to perform this action." });
+};
+
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -66,10 +89,7 @@ passport.use(new GoogleStrategy({
     }
 ));
 
-passport.serializeUser((user, done) => {
-    done(null, user.id);
-});
-
+passport.serializeUser((user, done) => { done(null, user.id); });
 passport.deserializeUser(async (id, done) => {
     try {
         const user = await prisma.user.findUnique({ where: { id } });
@@ -102,6 +122,46 @@ app.get('/api/auth/status', (req, res) => {
         res.status(200).json(req.user);
     } else {
         res.status(200).json(null);
+    }
+});
+
+app.get('/api/pins', async (req, res) => {
+    try {
+        const pins = await prisma.pin.findMany({
+            include: {
+                author: {
+                    select: { name: true },
+                },
+            },
+        });
+        res.status(200).json(pins);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching pins:", error: error.message });
+    }
+});
+
+app.post('/api/plus', isAuthenticated, multerUploads, async (req, res) => {
+    const { description } = req.body;
+
+    if(!req.file) {
+        return res.status(400).json({ message: 'Image file is required' });
+    }
+
+    try {
+        const file = parser.format(path.extname(req.file.originalname).toString(), req.file.buffer).content;
+        const result = await coludinary.uploader.upload(file, {
+            folder: 'pincon',
+        });
+        const newPin = await prisma.pin.create({
+            data: {
+                imageUrl: result.secure_url,
+                description: description,
+                authorId: req.user.id,
+            },
+        });
+        res.status(201).json(newPin);
+    } catch (error) {
+        res.status(500).json({ message: 'Error creating pin', error: error.message });
     }
 });
 
