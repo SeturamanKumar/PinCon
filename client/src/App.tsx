@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import './App.css';
-// import { samplePins } from "./data/samplePins";
 import Pin from "./components/Pin";
 import UploadModal from "./components/UploadModal";
+import ProfileDropdown from "./components/ProfileDropdown";
 
 export type PinType = {
   id: string;
@@ -13,10 +13,11 @@ export type PinType = {
   };
 };
 
-type User= {
+type User = {
   id: string;
-  name: string;
+  name: string | null;
   email: string;
+  profileImageUrl: string | null;
 };
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pins, setPins] = useState<PinType[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -53,6 +55,10 @@ function App() {
     window.location.href = 'http://localhost:5001/auth/logout';
   };
 
+  const getUserInitial = () => {
+    return user?.name ? user.name.charAt(0).toUpperCase() : 'U';
+  }
+
   return(
     <div className="app-container">
       <header className="app-header">
@@ -72,11 +78,23 @@ function App() {
             )}
             {user && (
               <>
-                <span className="user-name">Welcome, {user.name}!</span>
-                <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">
+                <button onClick={() => setIsModalOpen(true)} className="btn btn-primary create-btn-desktop">
                   Create
                 </button>
-                <button onClick={handleLogout} className="btn btn-secondary">Logout</button>
+                <div className="profile-container">
+                  <img 
+                    src={user.profileImageUrl || `https://placehold.co/40x40/E8C3A0/232323?text=${getUserInitial()}`} 
+                    alt="User Profile"
+                    className="profile-picture"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
+                  />
+                  {isDropdownOpen && (
+                    <ProfileDropdown 
+                      userName={user.name}
+                      onLogout={handleLogout}
+                    />
+                  )}
+                </div>
               </>
             )}
           </div>
