@@ -63,22 +63,26 @@ passport.use(new GoogleStrategy({
             const userEmail = profile.emails[0].value;
             const userName = profile.displayName;
 
+            const profileImageUrl = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
+
             let user = await prisma.user.findUnique({
                 where: { email: userEmail },
             });
 
             if(user){
-                if(!user.name){
-                    user = await prisma.user.update({
-                        where: { email: userEmail },
-                        data: { name: userName },
-                    });
-                }
+                user = await prisma.user.update({
+                    where: { email: userEmail },
+                    data: {
+                        name: userName,
+                        profileImageUrl: profileImageUrl,
+                    },
+                });
             } else {
                 user = await prisma.user.create({
                     data: {
                         email: userEmail,
                         name: userName,
+                        profileImageUrl: profileImageUrl,
                     },
                 });
             }

@@ -63,6 +63,19 @@
   background-color: #dee2e6;
 }
 
+.profile-container{
+  position: relative;
+}
+
+.profile-picture{
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  object-fit: cover;
+  border: 2px solid #eee;
+}
+
 .main-content{
   max-width: 1280px;
   margin: 0 auto;
@@ -90,10 +103,16 @@
   .image-grid{
     column-count: 2;
   }
+  .create-btn-desktop{
+    display: none;
+  }
 }
 
 @media (max-width: 576px) {
   .image-grid{
     column-count: 1;
+  }
+  .create-btn-desktop{
+    display: none;
   }
 }
