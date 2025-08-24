@@ -169,6 +169,62 @@ app.post('/api/pins', isAuthenticated, multerUploads, async (req, res) => {
     }
 });
 
+app.delete('/api/pins/:pinId', isAuthenticated, async (req, res) => {
+    const { pinId } = req.params;
+    const userId = req.user.id;
+
+    try {
+        const pin  = await prisma.pin.findUnique({
+            where: { id: pinId },
+        });
+
+        if(!pin) {
+            return res.status(404).json({ message: 'Pin Not Found' });
+        }
+
+        if(pin.authorId !== userId){
+            return res.status(403).json({ message: 'You are not authorized to delete this pin' });
+        }
+
+        await prisma.pin.delete({
+            where: { id: pinId },
+        });
+
+        res.status(200).json({ message: 'Pin deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting pin', error: error.message });
+    }
+});
+
+app.pus('/api/pins/:pinId', isAuthenticated, async (req, res) => {
+    const { pinId } = req.params;
+    const { description } = req.body;
+    const userId = req.user.id;
+
+    try {
+        const pin = await prisma.pin.findUnique({
+            where: { id: pinId },
+        });
+
+        if(!pin){
+            return res.status(404).json({ message: 'Pin Not Found'})
+        }
+
+        if(pin.authorId !== userId){
+            return res.status(403).json({ message: 'You are not authorized to edit this pin.'});
+        }
+
+        const updatedPin = await prisma.pin.update({
+            where: { id: pinId },
+            data: { description: description },
+        });
+
+        res.status(200).json(updatedPin);
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating pin', error: error.message });
+    }
+});
+
 app.get('/', (req, res) => {
     res.send('Hello from the PinCon server!');
 });
