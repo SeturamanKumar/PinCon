@@ -196,7 +196,7 @@ app.delete('/api/pins/:pinId', isAuthenticated, async (req, res) => {
     }
 });
 
-app.pus('/api/pins/:pinId', isAuthenticated, async (req, res) => {
+app.put('/api/pins/:pinId', isAuthenticated, async (req, res) => {
     const { pinId } = req.params;
     const { description } = req.body;
     const userId = req.user.id;
