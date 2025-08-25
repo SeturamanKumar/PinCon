@@ -3,6 +3,7 @@ import './App.css';
 import Pin from "./components/Pin";
 import UploadModal from "./components/UploadModal";
 import ProfileDropdown from "./components/ProfileDropdown";
+import EditPinModal from "./components/EditPinModal";
 
 export type PinType = {
   id: string;
@@ -11,6 +12,7 @@ export type PinType = {
   author: {
     name: string | null;
   };
+  authorId: string;
 };
 
 type User = {
@@ -26,6 +28,7 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pins, setPins] = useState<PinType[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [editingPin, setEditingPin] = useState<PinType | null>(null)
   
   useEffect(() => {
     const fetchData = async () => {
@@ -55,9 +58,56 @@ function App() {
     window.location.href = 'http://localhost:5001/auth/logout';
   };
 
+  const handleDeletePin = async (pinId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5001/api/pins/${pinId}`, {
+        method: 'DELETE',
+        credentials:'include',
+      });
+      if(response.ok){
+        setPins(pins.filter(pin => pin.id !== pinId));
+        alert('Pin deleted successfully!');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to delete pin: ${errorData}`);
+      }
+    } catch (error) {
+      console.error('Error deleting pin:', error);
+      alert('An error occured while deleting the pin.');
+    }
+  };
+
+  const handleEditPin = (pin: PinType) => {
+    setEditingPin(pin);
+  };
+
+  const handleSavePin = async (pinId: string, newDescription: string) => {
+    try {
+      const response = await fetch(`http://localhost:5001/api/pins/${pinId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ description: newDescription }),
+      });
+      if(response.ok){
+        const UpdatedPin = await response.json();
+        setPins(pins.map(p => (p.id === pinId ? UpdatedPin : p)));
+        alert('Pin updated successfully!');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to update pin: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Error updating pins:', error);
+      alert(`An error occured while trying tto update pin.`);
+    }
+  };
+
   const getUserInitial = () => {
     return user?.name ? user.name.charAt(0).toUpperCase() : 'U';
-  }
+  };
 
   return(
     <div className="app-container">
@@ -103,11 +153,14 @@ function App() {
       <main className="main-content">
         <div className="image-grid">
           {pins.map((pin) => (
-            <Pin key={pin.id} pin={pin} />
+            <Pin key={pin.id} pin={pin} user={user} onDelete={handleDeletePin} onEdit={handleEditPin}/>
           ))}
         </div>
       </main>
       {isModalOpen && <UploadModal onClose={() => setIsModalOpen(false)}/>}
+      {editingPin && (
+        <EditPinModal pin={editingPin} onSave={handleSavePin} onClose={() => setEditingPin(null)}/>
+      )}
     </div>
   );
 
