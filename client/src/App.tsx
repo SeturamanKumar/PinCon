@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import Pin from "./components/Pin";
 import UploadModal from "./components/UploadModal";
 import ProfileDropdown from "./components/ProfileDropdown";
 import EditPinModal from "./components/EditPinModal";
+import ProfilePage from "./components/ProfilePage";
 
 export type PinType = {
   id: string;
@@ -15,7 +17,7 @@ export type PinType = {
   authorId: string;
 };
 
-type User = {
+export type User = {
   id: string;
   name: string | null;
   email: string;
@@ -28,7 +30,8 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pins, setPins] = useState<PinType[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [editingPin, setEditingPin] = useState<PinType | null>(null)
+  const [editingPin, setEditingPin] = useState<PinType | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -45,6 +48,8 @@ function App() {
       } catch (error) {
         console.error("Error fetching data:", error);
         setUser(null);
+      } finally {
+        setAuthReady(true);
       }
     };
     fetchData();
@@ -109,59 +114,70 @@ function App() {
     return user?.name ? user.name.charAt(0).toUpperCase() : 'U';
   };
 
+  if(!authReady){
+    return <div>Loading...</div>
+  }
+
   return(
-    <div className="app-container">
-      <header className="app-header">
-        <nav className="header-nav">
-          <h1 className="logo">PinCon</h1>
-          <div className="nav-buttons">
-            {user === undefined && null}
-            {user === null && (
-              <>
-                <button onClick={handleLogin} className="btn btn-secondary">
-                  Login
-                </button>
-                <button onClick={handleLogin} className="btn btn-primary">
-                  Sign up
-                </button>
-              </>
-            )}
-            {user && (
-              <>
-                <button onClick={() => setIsModalOpen(true)} className="btn btn-primary create-btn-desktop">
-                  Create
-                </button>
-                <div className="profile-container">
-                  <img 
-                    src={user.profileImageUrl || `https://placehold.co/40x40/E8C3A0/232323?text=${getUserInitial()}`} 
-                    alt="User Profile"
-                    className="profile-picture"
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
-                  />
-                  {isDropdownOpen && (
-                    <ProfileDropdown 
-                      userName={user.name}
-                      onLogout={handleLogout}
+    <Router>
+      <div className="app-container">
+        <header className="app-header">
+          <nav className="header-nav">
+            <h1 className="logo">PinCon</h1>
+            <div className="nav-buttons">
+              {user === undefined && null}
+              {user === null && (
+                <>
+                  <button onClick={handleLogin} className="btn btn-secondary">
+                    Login
+                  </button>
+                  <button onClick={handleLogin} className="btn btn-primary">
+                    Sign up
+                  </button>
+                </>
+              )}
+              {user && (
+                <>
+                  <button onClick={() => setIsModalOpen(true)} className="btn btn-primary create-btn-desktop">
+                    Create
+                  </button>
+                  <div className="profile-container">
+                    <img 
+                      src={user.profileImageUrl || `https://placehold.co/40x40/E8C3A0/232323?text=${getUserInitial()}`} 
+                      alt="User Profile"
+                      className="profile-picture"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
                     />
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </nav>
-      </header>
-      <main className="main-content">
-        <div className="image-grid">
-          {pins.map((pin) => (
-            <Pin key={pin.id} pin={pin} user={user} onDelete={handleDeletePin} onEdit={handleEditPin}/>
-          ))}
-        </div>
-      </main>
-      {isModalOpen && <UploadModal onClose={() => setIsModalOpen(false)}/>}
-      {editingPin && (
-        <EditPinModal pin={editingPin} onSave={handleSavePin} onClose={() => setEditingPin(null)}/>
-      )}
-    </div>
+                    {isDropdownOpen && (
+                      <ProfileDropdown 
+                        userName={user.name}
+                        onLogout={handleLogout}
+                      />
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </nav>
+        </header>
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={
+            <div className="image-grid">
+              {pins.map((pin) => (
+                <Pin key={pin.id} pin={pin} user={user} onDelete={handleDeletePin} onEdit={handleEditPin}/>
+              ))}
+            </div>
+            }/>
+            <Route path="/profile" element={<ProfilePage user={user} />} />
+          </Routes>
+        </main>
+        {isModalOpen && <UploadModal onClose={() => setIsModalOpen(false)}/>}
+        {editingPin && (
+          <EditPinModal pin={editingPin} onSave={handleSavePin} onClose={() => setEditingPin(null)}/>
+        )}
+      </div>
+    </Router>
   );
 
 }
