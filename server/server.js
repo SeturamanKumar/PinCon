@@ -144,6 +144,23 @@ app.get('/api/pins', async (req, res) => {
     }
 });
 
+app.get('/api/my-pins', async (req, res) => {
+    const userId = req.user.id;
+    try {
+        const userPins = await prisma.pinfindMany({
+            where: {
+                authorId: userId,
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+        res.status(200).json(userPins);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching user pins: ', error: error.message });
+    }
+});
+
 app.post('/api/pins', isAuthenticated, multerUploads, async (req, res) => {
     const { description } = req.body;
 
