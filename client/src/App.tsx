@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 import Pin from "./components/Pin";
 import UploadModal from "./components/UploadModal";
@@ -123,7 +123,9 @@ function App() {
       <div className="app-container">
         <header className="app-header">
           <nav className="header-nav">
-            <h1 className="logo">PinCon</h1>
+            <Link to="/" className="logo-link">
+              <h1 className="logo">PinCon</h1>
+            </Link>
             <div className="nav-buttons">
               {user === undefined && null}
               {user === null && (
@@ -148,12 +150,11 @@ function App() {
                       className="profile-picture"
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
                     />
-                    {isDropdownOpen && (
                       <ProfileDropdown 
+                        isOpen={isDropdownOpen}
                         userName={user.name}
                         onLogout={handleLogout}
                       />
-                    )}
                   </div>
                 </>
               )}
