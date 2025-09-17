@@ -111,7 +111,10 @@ function App() {
   };
 
   const getUserInitial = () => {
-    return user?.name ? user.name.charAt(0).toUpperCase() : 'U';
+    if(user && user.name){
+      return user.name.charAt(0).toUpperCase();
+    }
+    return 'U';
   };
 
   if(!authReady){
@@ -154,6 +157,7 @@ function App() {
                         isOpen={isDropdownOpen}
                         userName={user.name}
                         onLogout={handleLogout}
+                        onClose={() => setIsDropdownOpen(false)}
                       />
                   </div>
                 </>

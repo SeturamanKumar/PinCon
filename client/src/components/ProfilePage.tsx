@@ -14,38 +14,43 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user }) => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchUserPins = async () => {
-            try{
-                const response = await fetch('http://localhost:5001/api/my-pins', {
-                    credentials: 'include',
-                });
-                if(!response.ok){
-                    throw new Error('Failed to fetch your pins!');
+        if(user){
+            const fetchUserPins = async () => {
+                try{
+                    const response = await fetch('http://localhost:5001/api/my-pins', {
+                        credentials: 'include',
+                    });
+                    if(!response.ok){
+                        throw new Error('Failed to fetch your pins!');
+                    }
+                    const data = await response.json();
+                    setUserPins(data);
+                } catch(err: any) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
                 }
-                const data = await response.json();
-                setUserPins(data);
-            } catch(err: any) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchUserPins();
-    }, []);
+            };
+            fetchUserPins();
+        } else if(user === null){
+            setError('Please log in to see your pins.');
+            setLoading(false);
+        }
+    }, [user]);
 
     const handleDeletePin = async (pinId: string) => {
         if(!window.confirm('Are you sure you want to delete the pin?')){
             return;
         }
         try{
-            const response = await fetch(`http://localhost:5001/api/pins${pinId}`, {
+            const response = await fetch(`http://localhost:5001/api/pins/${pinId}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
 
-            if(response.ok){
-                setUserPins(currentPins => currentPins.filter(pin => pin.id !== pinId));
-                alert('Pin deleted successfully');
+            if(!response.ok){
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to fetch your pins!');
             } else {
                 const errorData = await response.json();
                 alert(`Failed to delete pin: ${errorData.message}`);

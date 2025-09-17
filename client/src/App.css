@@ -21,6 +21,10 @@
   align-items: center;
 }
 
+.logo-link{
+  text-decoration: none;
+}
+
 .logo{
   font-size: 2rem;
   font-weight: bold;
