@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from "react";
 import type { PinType, User } from "../App";
 import Pin from "./Pin";
+import EditProfileModal from "./EditProfileModal";
 import './ProfilePage.css';
 
 interface ProfilePageProps {
     user: User | null | undefined;
+    onUpdateUser: (updatedUser: User) => void;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) => {
 
     const [userPins, setUserPins] = useState<PinType[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     useEffect(() => {
         if(user){
@@ -66,6 +69,27 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user }) => {
         console.log('Editing Pin:', pin);
     }
 
+    const handleSaveProfile = async (formData: FormData) => {
+        try{
+            const response = await fetch('http://localhost:5001/api/users/me', {
+                method: 'PUT',
+                credentials: 'include',
+                body: formData,
+            });
+            if(!response.ok){
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to upload profile.');
+            }
+            const updatedUser = await response.json();
+            onUpdateUser(updatedUser);
+            alert('Profile updated successfully');
+        } catch (error: any) {
+            console.error('Error updating profile:', error);
+            alert(`Update failed: ${error.message}`);
+            throw error;
+        }
+    }
+
     if(loading){
         return <div className="loading-message">Loading Your Pins...</div>
     }
@@ -74,18 +98,40 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user }) => {
     }
 
     return(
-        <div className="profile-page-container">
-            <h1>My Pins</h1>
-            {userPins.length === 0 ? (
-                <p>You haven't created any pins yet.</p>
-            ) : (
-                <div className="image-grid">
-                    {userPins.map((pin) => (
-                        <Pin key={pin.id} pin={pin} user={user} onDelete={handleDeletePin} onEdit={handleEditPin}/>
-                    ))}
+        <>
+            <div className="profile-page-container">
+                <div className="profile-header">
+                    <h1>My Pins</h1>
+                    {user && (
+                        <button className="btn btn-secondary" onClick={() => setIsEditModalOpen(true)}>
+                            Edit Profile
+                        </button>
+                    )}
                 </div>
+                {userPins.length === 0 ? (
+                    <p>You haven't created any pins yet.</p>
+                ) : (
+                    <div className="image-grid">
+                        {userPins.map((pin) => (
+                            <Pin
+                                key={pin.id}
+                                pin={pin}
+                                user={user}
+                                onDelete={handleDeletePin}
+                                onEdit={handleEditPin}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+            {isEditModalOpen && user && (
+                <EditProfileModal
+                    user={user}
+                    onClose={() => setIsEditModalOpen(false)}
+                    onSave={handleSaveProfile}
+                />
             )}
-        </div>
+        </>
     )
 
 }
