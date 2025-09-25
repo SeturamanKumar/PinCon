@@ -1,14 +1,19 @@
 .profile-page-container{
     max-width: 1280px;
     margin: 0 auto;
-    padding: 2rem 1rem;
+    padding: 1rem 1rem 2rem;
 }
 
 .profile-page-container h1{
-    text-align: center;
+    text-align: left;
+    margin: 0;
+}
+
+.profile-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 2rem;
-    font-size: 2.5rem;
-    color: #333;
 }
 
 .loading-message, .error-message{   

@@ -15,6 +15,13 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// This will print the actual values being used.
+console.log("--- Verifying Passport.js Google Strategy Configuration ---");
+console.log(`CLIENT_ID being used: ==> ${process.env.GOOGLE_CLIENT_ID} <==`);
+console.log(`CLIENT_SECRET being used: ==> ${process.env.GOOGLE_CLIENT_SECRET} <==`);
+console.log("----------------------------------------------------------");
+// --- END OF NEW DIAGNOSTIC LOGS ---
+
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
@@ -70,19 +77,29 @@ passport.use(new GoogleStrategy({
             });
 
             if(user){
+                const result = await cloudinary.uploader.upload(profileImageUrl, {
+                    folder: 'pincon-profiles',
+                    public_id: user.profileImagePublicId || undefined,
+                    overwrite: true,
+                })
                 user = await prisma.user.update({
                     where: { email: userEmail },
                     data: {
                         name: userName,
                         profileImageUrl: profileImageUrl,
+                        profileImagePublicId: result.public_id,
                     },
                 });
             } else {
+                const result = await cloudinary.uploader.upload(profileImageUrl, {
+                    folder: 'pincon-profiles',
+                });
                 user = await prisma.user.create({
                     data: {
                         email: userEmail,
                         name: userName,
                         profileImageUrl: profileImageUrl,
+                        profileImagePublicId: result.public_id,
                     },
                 });
             }
@@ -94,7 +111,7 @@ passport.use(new GoogleStrategy({
 ));
 
 passport.serializeUser((user, done) => { done(null, user.id); });
-passport.deserializeUser(async (id, done) => {   
+passport.deserializeUser(async (id, done) => {
     try {
         const user = await prisma.user.findUnique({ where: { id } });
         done(null, user);
@@ -244,6 +261,36 @@ app.put('/api/pins/:pinId', isAuthenticated, async (req, res) => {
         res.status(200).json(updatedPin);
     } catch (error) {
         res.status(500).json({ message: 'Error updating pin', error: error.message });
+    }
+});
+
+app.put('/api/users/me', isAuthenticated, multerUploads, async (req, res) => {
+    const { name } = req.body;
+    const userId = req.user.id;
+    if(!name){
+        return res.status(400).json({ message: 'Name is required' });
+    }
+
+    try {
+        const dataToUpdate = {
+            name: name,
+        };
+
+        if(req.file){
+            const file = parser.format(path.extname(req.file.originalname).toString(), req.file.buffer).content;
+            const result = await cloudinary.uploader.upload(file, {
+                folder: 'pincon-profiles',
+            });
+            dataToUpdate.profileImageUrl = result.secure_url;
+        }
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: dataToUpdate
+        });
+
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating user profile', error: error.message });
     }
 });
 

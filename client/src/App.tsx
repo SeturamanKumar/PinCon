@@ -55,6 +55,10 @@ function App() {
     fetchData();
   }, []);
 
+  const handleUpateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+  };
+
   const handleLogin = () => {
     window.location.href = 'http://localhost:5001/auth/google';
   };
@@ -174,7 +178,7 @@ function App() {
               ))}
             </div>
             }/>
-            <Route path="/profile" element={<ProfilePage user={user} />} />
+            <Route path="/profile" element={<ProfilePage user={user} onUpdateUser={handleUpateUser}/>} />
           </Routes>
         </main>
         {isModalOpen && <UploadModal onClose={() => setIsModalOpen(false)}/>}
