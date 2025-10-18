@@ -1,19 +1,20 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import type { User } from "../App";
 import './ProfileDropdown.css';
 
 interface ProfileDropdownProps {
-    userName: string | null;
+    user: User | null;
     onLogout: () => void;
     isOpen: boolean;
     onClose: () => void;
 }
 
-const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ userName, onLogout, isOpen, onClose }) => {
+const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ user, onLogout, isOpen, onClose }) => {
     return(
         <div className={`dropdown-menu ${isOpen ? 'open' : ''}`}>
             <div className="dropdown-header">
-                <p>{userName || 'User'}</p>
+                <p>{user?.name || 'User'}</p>
             </div>
             <ul className="dropdown-list">
                 <li className="dropdown-item" onClick={onClose}>
@@ -22,6 +23,11 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ userName, onLogout, i
                 <li className="dropdown-item" onClick={onClose}>
                     <Link to="/profile">My Pins</Link>
                 </li>
+                {user && user.role === 'ADMIN' && (
+                    <li className="dropdown-item" onClick={close}>
+                        <Link to="/admin">Admin Panel</Link>
+                    </li>
+                )}
                 <li className="dropdown-item" onClick={onLogout}>
                     Logout
                 </li>

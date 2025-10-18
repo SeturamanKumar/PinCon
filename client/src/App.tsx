@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import './App.css';
 import Pin from "./components/Pin";
 import UploadModal from "./components/UploadModal";
 import ProfileDropdown from "./components/ProfileDropdown";
 import EditPinModal from "./components/EditPinModal";
 import ProfilePage from "./components/ProfilePage";
+import AdminPage from "./components/AdminPage";
 
 export type PinType = {
   id: string;
@@ -22,6 +23,7 @@ export type User = {
   name: string | null;
   email: string;
   profileImageUrl: string | null;
+  role: 'USER' | 'ADMIN';
 };
 
 function App() {
@@ -159,7 +161,7 @@ function App() {
                     />
                       <ProfileDropdown 
                         isOpen={isDropdownOpen}
-                        userName={user.name}
+                        user={user}
                         onLogout={handleLogout}
                         onClose={() => setIsDropdownOpen(false)}
                       />
@@ -179,6 +181,7 @@ function App() {
             </div>
             }/>
             <Route path="/profile" element={<ProfilePage user={user} onUpdateUser={handleUpateUser}/>} />
+            <Route path="/admin" element={user && user.role === 'ADMIN' ? ( <AdminPage user={user} />) : (<Navigate to="/" />) }/>
           </Routes>
         </main>
         {isModalOpen && <UploadModal onClose={() => setIsModalOpen(false)}/>}
