@@ -7,6 +7,7 @@ type User = {
     name: string | null;
     email: string;
     profileImageUrl: string | null;
+    role: string;
 }
 
 interface PinProps {
@@ -18,7 +19,7 @@ interface PinProps {
 
 const Pin: React.FC<PinProps> = ({ pin, user, onDelete, onEdit }) => {
 
-    const isOwner = user && user.id === pin.authorId;
+    const canManagePin = user && (user.id === pin.authorId || user.role === 'ADMIN');
 
     const handleDelete = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -27,7 +28,7 @@ const Pin: React.FC<PinProps> = ({ pin, user, onDelete, onEdit }) => {
         }
     };
 
-    const handleEdit = (e: React.FormEvent) => {
+    const handleEdit = (e: React.MouseEvent) => {
         e.stopPropagation();
         onEdit(pin);
     };
@@ -39,7 +40,7 @@ const Pin: React.FC<PinProps> = ({ pin, user, onDelete, onEdit }) => {
                 {pin.description && (
                     <p className="pin-description">{pin.description}</p>
                 )}
-                {isOwner && (
+                {canManagePin && (
                     <div className="pin-actions">
                         <button className="action-btn edit-btn" onClick={handleEdit}>
                             <svg 

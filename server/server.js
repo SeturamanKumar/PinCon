@@ -15,13 +15,6 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// This will print the actual values being used.
-console.log("--- Verifying Passport.js Google Strategy Configuration ---");
-console.log(`CLIENT_ID being used: ==> ${process.env.GOOGLE_CLIENT_ID} <==`);
-console.log(`CLIENT_SECRET being used: ==> ${process.env.GOOGLE_CLIENT_SECRET} <==`);
-console.log("----------------------------------------------------------");
-// --- END OF NEW DIAGNOSTIC LOGS ---
-
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
@@ -56,6 +49,13 @@ const isAuthenticated = (req, res, next) => {
     res.status(401).json({ message: "You must be logged in to perform this action." });
 };
 
+const isAdmin = (req, res, next) => {
+    if(res.user && req.user.role === 'ADMIN'){
+        return next();
+    }
+    res.status(403).json({ message: "Admin access required." });
+};
+
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -69,26 +69,30 @@ passport.use(new GoogleStrategy({
 
             const userEmail = profile.emails[0].value;
             const userName = profile.displayName;
-
             const profileImageUrl = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
 
             let user = await prisma.user.findUnique({
                 where: { email: userEmail },
             });
 
-            if(user){
+            const dataForDb = {
+                name: userName,
+            };
+
+            if(profileImageUrl) {
                 const result = await cloudinary.uploader.upload(profileImageUrl, {
                     folder: 'pincon-profiles',
-                    public_id: user.profileImagePublicId || undefined,
+                    public_id: user?.profileImagePublicId || undefined,
                     overwrite: true,
-                })
+                });
+                dataForDb.profileImageUrl = result.secure_url;
+                dataForDb.profileImagePublicId = result.public_id;
+            }
+
+            if(user){
                 user = await prisma.user.update({
                     where: { email: userEmail },
-                    data: {
-                        name: userName,
-                        profileImageUrl: profileImageUrl,
-                        profileImagePublicId: result.public_id,
-                    },
+                    data: dataForDb,
                 });
             } else {
                 const result = await cloudinary.uploader.upload(profileImageUrl, {
@@ -97,14 +101,13 @@ passport.use(new GoogleStrategy({
                 user = await prisma.user.create({
                     data: {
                         email: userEmail,
-                        name: userName,
-                        profileImageUrl: profileImageUrl,
-                        profileImagePublicId: result.public_id,
+                        ...dataForDb,
                     },
                 });
             }
             return done(null, user);
         } catch (error) {
+            console.error("Error in Google Strategy:", error);
             return done(error, null);
         }
     }
@@ -210,7 +213,7 @@ app.post('/api/pins', isAuthenticated, multerUploads, async (req, res) => {
 
 app.delete('/api/pins/:pinId', isAuthenticated, async (req, res) => {
     const { pinId } = req.params;
-    const userId = req.user.id;
+    const currentUser = req.user;
 
     try {
         const pin  = await prisma.pin.findUnique({
@@ -221,7 +224,7 @@ app.delete('/api/pins/:pinId', isAuthenticated, async (req, res) => {
             return res.status(404).json({ message: 'Pin Not Found' });
         }
 
-        if(pin.authorId !== userId){
+        if(pin.authorId !== currentUser.id && currentUser.role !== 'ADMIN'){
             return res.status(403).json({ message: 'You are not authorized to delete this pin' });
         }
 
@@ -238,7 +241,7 @@ app.delete('/api/pins/:pinId', isAuthenticated, async (req, res) => {
 app.put('/api/pins/:pinId', isAuthenticated, async (req, res) => {
     const { pinId } = req.params;
     const { description } = req.body;
-    const userId = req.user.id;
+    const currentUser = req.user;
 
     try {
         const pin = await prisma.pin.findUnique({
@@ -249,7 +252,7 @@ app.put('/api/pins/:pinId', isAuthenticated, async (req, res) => {
             return res.status(404).json({ message: 'Pin Not Found'})
         }
 
-        if(pin.authorId !== userId){
+        if(pin.authorId !== currentUser.id && currentUser.role !== 'ADMIN'){
             return res.status(403).json({ message: 'You are not authorized to edit this pin.'});
         }
 
