@@ -21,7 +21,7 @@
     "express-session": "^1.18.2",
     "multer": "^2.0.2",
     "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0",
+    "passport-google-oauth20": "^2.0.0"
   },
   "devDependencies": {
     "prisma": "^5.14.0"
