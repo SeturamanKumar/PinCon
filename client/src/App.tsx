@@ -166,6 +166,7 @@ function App() {
                         user={user}
                         onLogout={handleLogout}
                         onClose={() => setIsDropdownOpen(false)}
+                        onOpenUploadModal={() => setIsModalOpen(true)}
                       />
                   </div>
                 </>

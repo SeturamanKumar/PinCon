@@ -91,6 +91,10 @@
   column-gap: 1rem;
 }
 
+.create-btn-desktop{
+  display: none;
+}
+
 @media (max-width: 1200px) {
   .image-grid{
     column-count: 4;
@@ -108,15 +112,12 @@
     column-count: 2;
   }
   .create-btn-desktop{
-    display: none;
+    display: block;
   }
 }
 
 @media (max-width: 576px) {
   .image-grid{
     column-count: 1;
-  }
-  .create-btn-desktop{
-    display: none;
   }
 }
