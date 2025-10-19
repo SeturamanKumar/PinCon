@@ -7,6 +7,7 @@ import ProfileDropdown from "./components/ProfileDropdown";
 import EditPinModal from "./components/EditPinModal";
 import ProfilePage from "./components/ProfilePage";
 import AdminPage from "./components/AdminPage";
+export const API_BASE_URL = 'https://pincon-server.onrender.com';
 
 export type PinType = {
   id: string;
@@ -38,13 +39,13 @@ function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const authResponse = await fetch('http://localhost:5001/api/auth/status', {
+        const authResponse = await fetch(`${API_BASE_URL}/api/auth/status`, {
           credentials: 'include',
         });
         const userData = await authResponse.json();
         setUser(userData);
 
-        const pinsResponse = await fetch('http://localhost:5001/api/pins');
+        const pinsResponse = await fetch(`${API_BASE_URL}/api/pins`);
         const pinsData = await pinsResponse.json();
         setPins(pinsData);
       } catch (error) {
@@ -62,16 +63,16 @@ function App() {
   };
 
   const handleLogin = () => {
-    window.location.href = 'http://localhost:5001/auth/google';
+    window.location.href = `${API_BASE_URL}/auth/google`;
   };
 
   const handleLogout = () => {
-    window.location.href = 'http://localhost:5001/auth/logout';
+    window.location.href = `${API_BASE_URL}/auth/logout`;
   };
 
   const handleDeletePin = async (pinId: string) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/pins/${pinId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/pins/${pinId}`, {
         method: 'DELETE',
         credentials:'include',
       });
@@ -94,7 +95,7 @@ function App() {
 
   const handleSavePin = async (pinId: string, newDescription: string) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/pins/${pinId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/pins/${pinId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -104,8 +105,9 @@ function App() {
       });
       if(response.ok){
         const UpdatedPin = await response.json();
-        setPins(pins.map(p => (p.id === pinId ? UpdatedPin : p)));
+        setPins(pins.map(p => (p.id === pinId ? {...p, description: UpdatedPin.description} : p)));
         alert('Pin updated successfully!');
+        setEditingPin(null);
       } else {
         const errorData = await response.json();
         alert(`Failed to update pin: ${errorData.message}`);
@@ -181,7 +183,7 @@ function App() {
             </div>
             }/>
             <Route path="/profile" element={<ProfilePage user={user} onUpdateUser={handleUpateUser}/>} />
-            <Route path="/admin" element={user && user.role === 'ADMIN' ? ( <AdminPage user={user} />) : (<Navigate to="/" />) }/>
+            <Route path="/admin" element={user && user.role === 'ADMIN' ? ( <AdminPage user={user} pins={pins} onDelete={handleDeletePin} onEdit={handleEditPin}/>) : (<Navigate to="/" />) }/>
           </Routes>
         </main>
         {isModalOpen && <UploadModal onClose={() => setIsModalOpen(false)}/>}
