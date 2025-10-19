@@ -26,7 +26,7 @@ const multerUploads = multer({ storage }).single('image');
 const parser = new DatauriParser();
 
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://pin-con.vercel.app'],
+    origin: ['http://localhost:5173', process.env.CLIENT_URL],
     credentials: true,
 }));
 app.use(express.json());
@@ -129,15 +129,15 @@ app.get('/auth/google',
 
 app.get('/auth/google/callback',
     passport.authenticate('google', {
-        successRedirect: 'http://localhost:5173/',
-        failureRedirect: 'http://localhost:5173/login',
+        successRedirect: process.env.CLIENT_URL,
+        failureRedirect: `${process.env.CLIENT_URL}/login`,
     })
 );
 
 app.get('/auth/logout', (req, res, next) => {
     req.logout((err) => {
         if(err) { return next(err); }
-        res.redirect('http://localhost:5173/');
+        res.redirect(process.env.CLIENT_URL);
     });
 });
 
