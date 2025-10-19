@@ -8,15 +8,25 @@ interface ProfileDropdownProps {
     onLogout: () => void;
     isOpen: boolean;
     onClose: () => void;
+    onOpenUploadModal: () => void;
 }
 
-const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ user, onLogout, isOpen, onClose }) => {
+const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ user, onLogout, isOpen, onClose, onOpenUploadModal }) => {
+
+    const handleCreateClick = () => {
+        onOpenUploadModal();
+        onClose();
+    }
+
     return(
         <div className={`dropdown-menu ${isOpen ? 'open' : ''}`}>
             <div className="dropdown-header">
                 <p>{user?.name || 'User'}</p>
             </div>
             <ul className="dropdown-list">
+                <li className="dropdown-item create-btn-mobile" onClick={handleCreateClick}>
+                    Create Pin
+                </li>
                 <li className="dropdown-item" onClick={onClose}>
                     <Link to="/">Home</Link>
                 </li>
