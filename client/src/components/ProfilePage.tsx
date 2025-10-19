@@ -3,6 +3,7 @@ import type { PinType, User } from "../App";
 import Pin from "./Pin";
 import EditProfileModal from "./EditProfileModal";
 import './ProfilePage.css';
+import { API_BASE_URL } from "../App";
 
 interface ProfilePageProps {
     user: User | null | undefined;
@@ -20,7 +21,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) => {
         if(user){
             const fetchUserPins = async () => {
                 try{
-                    const response = await fetch('http://localhost:5001/api/my-pins', {
+                    const response = await fetch(`${API_BASE_URL}/api/my-pins`, {
                         credentials: 'include',
                     });
                     if(!response.ok){
@@ -46,7 +47,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) => {
             return;
         }
         try{
-            const response = await fetch(`http://localhost:5001/api/pins/${pinId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/pins/${pinId}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -71,7 +72,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser }) => {
 
     const handleSaveProfile = async (formData: FormData) => {
         try{
-            const response = await fetch('http://localhost:5001/api/users/me', {
+            const response = await fetch(`${API_BASE_URL}/api/users/me`, {
                 method: 'PUT',
                 credentials: 'include',
                 body: formData,

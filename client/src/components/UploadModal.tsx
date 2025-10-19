@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import './UploadModal.css';
+import { API_BASE_URL } from "../App";
 
 interface UploadModalProps {
     onClose: () => void;
@@ -35,7 +36,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose }) => {
         formData.append('description', description);
 
         try {
-            const response = await fetch('http://localhost:5001/api/pins', {
+            const response = await fetch(`${API_BASE_URL}/api/pins`, {
                 method: 'POST',
                 credentials: 'include',
                 body: formData,
