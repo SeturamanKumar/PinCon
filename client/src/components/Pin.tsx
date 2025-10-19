@@ -37,9 +37,6 @@ const Pin: React.FC<PinProps> = ({ pin, user, onDelete, onEdit }) => {
         <div className="pin-container">
             <img className="pin-image" src={pin.imageUrl} alt={pin.description || 'Pin image'} />
             <div className="pin-overlay">
-                {pin.description && (
-                    <p className="pin-description">{pin.description}</p>
-                )}
                 {canManagePin && (
                     <div className="pin-actions">
                         <button className="action-btn edit-btn" onClick={handleEdit}>
@@ -66,6 +63,9 @@ const Pin: React.FC<PinProps> = ({ pin, user, onDelete, onEdit }) => {
                             </svg>
                         </button>
                     </div>
+                )}
+                {pin.description && (
+                    <p className="pin-description">{pin.description}</p>
                 )}
             </div>
         </div>
