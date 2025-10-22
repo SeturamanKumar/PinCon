@@ -85,13 +85,21 @@ passport.use(new GoogleStrategy({
             };
 
             if(profileImageUrl) {
-                const result = await cloudinary.uploader.upload(profileImageUrl, {
-                    folder: 'pincon-profiles',
-                    public_id: user?.profileImagePublicId || undefined,
+                const uploadOptions = {
                     overwrite: true,
-                });
-                dataForDb.profileImageUrl = result.secure_url;
-                dataForDb.profileImagePublicId = result.public_id;
+                };
+                if(user && user.profileImagePublicId) {
+                    uploadOptions.public_id = user.profileImagePublicId;
+                } else {
+                    uploadOptions.folder = 'pincon-profiles';
+                }
+                uploadResult = await cloudinary.uploader.upload(profileImageUrl, uploadOptions);
+
+                dataForDb.profileImageUrl = uploadResult.secure_url;
+                dataForDb.profileImagePublicId = uploadResult.public_id;
+            } else if(user && user.profileImagePublicId) {
+                dataForDb.profileImageUrl = user.profileImageUrl;
+                dataForDb.profileImagePublicId = user.profileImagePublicId;
             }
 
             if(user){
@@ -100,9 +108,6 @@ passport.use(new GoogleStrategy({
                     data: dataForDb,
                 });
             } else {
-                const result = await cloudinary.uploader.upload(profileImageUrl, {
-                    folder: 'pincon-profiles',
-                });
                 user = await prisma.user.create({
                     data: {
                         email: userEmail,
