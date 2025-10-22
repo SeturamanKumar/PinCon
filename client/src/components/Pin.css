@@ -27,7 +27,7 @@
     opacity: 0;
     transition: opacity 0.2s ease-in-out;
     display: flex;
-    flex-direction: column;
+    flex-direction: column-reverse;
     justify-content: space-between;
     padding: 0.75rem;
 }
@@ -40,7 +40,6 @@
     color: white;
     font-size: 0.875rem;
     margin: 0;
-    align-self: flex-end;
     width: 100%;
 }
 
