@@ -55,12 +55,8 @@
     background-color: #f5f5f5;
 }
 
-.create-btn-mobile{
-    display: none; 
-}
-
-@media (max-width: 768px){
+@media (max-width: 768px) {
     .create-btn-mobile{
-        display: block;
+        display: none; 
     }
 }
