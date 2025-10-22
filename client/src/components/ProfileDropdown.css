@@ -56,11 +56,11 @@
 }
 
 .create-btn-mobile{
-    display: none; 
+    display: none
 }
 
-@media (max-width: 768px){
+@media (max-width: 768px) {
     .create-btn-mobile{
-        display: block;
+        display: block; 
     }
 }
