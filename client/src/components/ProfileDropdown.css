@@ -54,3 +54,9 @@
 .dropdown-item:hover{
     background-color: #f5f5f5;
 }
+
+@media (max-width: 768px) {
+    .create-btn-mobile{
+        display: none; 
+    }
+}
