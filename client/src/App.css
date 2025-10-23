@@ -121,6 +121,6 @@
     column-count: 1;
   }
   .create-btn-desktop{
-    display: block;
+    display: none;
   }
 }
