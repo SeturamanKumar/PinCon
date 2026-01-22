@@ -1,5 +1,8 @@
-node_modules
+node_modules/
+npm-debug.log
+.DS-store
 # Keep environment variables out of version control
 .env
 
 /generated/prisma
+docker-compose.override.yml
