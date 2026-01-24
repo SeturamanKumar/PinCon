@@ -1,0 +1,19 @@
+services: 
+  api:
+    build: .
+    ports:
+      - "3000:5001"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis-db:6379
+    depends_on:
+      redis-db:
+        condition: service_healthy
+  redis-db:
+    image: redis:alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

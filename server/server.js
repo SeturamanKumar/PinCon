@@ -6,6 +6,20 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { PrismaClient } = require('@prisma/client');
 require('dotenv').config();
 
+const redis = require('redis');
+const redisClient = redis.createClient({
+    url: process.env.REDIS_URL
+});
+redisClient.on('error', (err) => console.error('Redis Client Error'));
+(async () => {
+    try {
+        await redisClient.connect();
+        console.log('Connected to Redis successfully')
+    } catch (error) {
+        console.error('Fatal: Could not connect to Redis on startup')
+    }
+})();
+
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const DatauriParser = require('datauri/parser');
@@ -160,7 +174,15 @@ app.get('/api/auth/status', (req, res) => {
 });
 
 app.get('/api/pins', async (req, res) => {
+    const cacheKey = 'all_pins';
+
     try {
+        const cachedData = await redisClient.get(cacheKey);
+        if(cachedData){
+            console.log('Serving from cache');
+            return res.status(200).json(JSON.parse(cachedData));
+        }
+
         const pins = await prisma.pin.findMany({
             include: {
                 author: {
@@ -168,6 +190,10 @@ app.get('/api/pins', async (req, res) => {
                 },
             },
         });
+        await redisClient.set(cacheKey, JSON.stringify(pins), {
+            EX: 60
+        });
+        console.log('Serving from database');
         res.status(200).json(pins);
     } catch (error) {
         res.status(500).json({ message: "Error fetching pins:", error: error.message });
