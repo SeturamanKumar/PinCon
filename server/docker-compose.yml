@@ -16,8 +16,12 @@ services:
         condition: service_healthy
   redis-db:
     image: redis:alpine
+    volumes:
+      - redist_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
+volumes:
+  redist_data:
