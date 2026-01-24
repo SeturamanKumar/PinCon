@@ -24,3 +24,8 @@ server/node_modules
 # IDE / Editor specific folders
 .vscode/
 .idea/
+
+
+npm-debug.log
+.DS-store
+docker-compose.override.yml
