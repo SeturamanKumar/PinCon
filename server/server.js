@@ -191,7 +191,7 @@ app.get('/api/pins', async (req, res) => {
             },
         });
         await redisClient.set(cacheKey, JSON.stringify(pins), {
-            EX: 60
+            EX: 600
         });
         console.log('Serving from database');
         res.status(200).json(pins);
@@ -241,6 +241,8 @@ app.post('/api/pins', isAuthenticated, multerUploads, async (req, res) => {
                 authorId: req.user.id,
             },
         });
+        console.log("Invalidating cache for 'all_pins'");
+        await redisClient.del('all_pins');
         res.status(201).json(newPin);
     } catch (error) {
         res.status(500).json({ message: 'Error creating pin', error: error.message });

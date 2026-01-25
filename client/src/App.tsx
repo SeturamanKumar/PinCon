@@ -7,7 +7,9 @@ import ProfileDropdown from "./components/ProfileDropdown";
 import EditPinModal from "./components/EditPinModal";
 import ProfilePage from "./components/ProfilePage";
 import AdminPage from "./components/AdminPage";
-export const API_BASE_URL = 'https://pincon-server.onrender.com';
+
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+export const API_BASE_URL = isLocal ? 'http://localhost:3000' : 'https://pincon-server.onrender.com';
 
 export type PinType = {
   id: string;
