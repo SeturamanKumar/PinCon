@@ -177,7 +177,16 @@ app.get('/api/pins', async (req, res) => {
     const cacheKey = 'all_pins';
 
     try {
-        const cachedData = await redisClient.get(cacheKey);
+        let cachedData = null;
+
+        try {
+            if(redisClient.isOpen) {
+                cachedData = await redisClient.get(cacheKey);
+            }
+        } catch (error) {
+            console.warn("Redis skipped:", redisError.message);
+        }
+
         if(cachedData){
             console.log('Serving from cache');
             return res.status(200).json(JSON.parse(cachedData));
