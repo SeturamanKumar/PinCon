@@ -8,7 +8,10 @@ require('dotenv').config();
 
 const redis = require('redis');
 const redisClient = redis.createClient({
-    url: process.env.REDIS_URL
+    url: process.env.REDIS_URL || 'redis://redis-db:6379',
+    socket: {
+        reconnectStrategy: false,
+    }
 });
 redisClient.on('error', (err) => console.error('Redis Client Error'));
 (async () => {
@@ -177,7 +180,16 @@ app.get('/api/pins', async (req, res) => {
     const cacheKey = 'all_pins';
 
     try {
-        const cachedData = await redisClient.get(cacheKey);
+        let cachedData = null;
+
+        if(redisClient.isReady){
+            try {
+                cachedData = await  redisClient.get(cacheKey);
+            } catch (error) {
+                
+            }
+        }
+
         if(cachedData){
             console.log('Serving from cache');
             return res.status(200).json(JSON.parse(cachedData));
@@ -269,6 +281,7 @@ app.delete('/api/pins/:pinId', isAuthenticated, async (req, res) => {
         await prisma.pin.delete({
             where: { id: pinId },
         });
+
 
         res.status(200).json({ message: 'Pin deleted successfully' });
     } catch (error) {
