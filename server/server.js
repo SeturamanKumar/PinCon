@@ -6,22 +6,34 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { PrismaClient } = require('@prisma/client');
 require('dotenv').config();
 
-const redis = require('redis');
-const redisClient = redis.createClient({
+const { createClient } = require('redis');
+const redisClient = createClient({
     url: process.env.REDIS_URL || 'redis://redis-db:6379',
     socket: {
         reconnectStrategy: false,
+        connectTimeout: 2000,
     }
 });
 redisClient.on('error', (err) => console.error('Redis Client Error'));
-(async () => {
+async function safeGet(key){
     try {
-        await redisClient.connect();
-        console.log('Connected to Redis successfully')
+        if(!redisClient.isReady) return null;
     } catch (error) {
-        console.error('Fatal: Could not connect to Redis on startup')
+        return null;
     }
-})();
+}
+async function safeSet(key, value, options){
+    try {
+        if(!redisClient.isReady) return;
+        await redisClient.set(key, value, options);
+    } catch (error) {}
+}
+async function safeDel(key){
+    try {
+        if(!redisClient.isReady) return;
+        await redisClient.del(key);
+    } catch (error) {}
+}
 
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
@@ -150,6 +162,8 @@ passport.deserializeUser(async (id, done) => {
     }
 });
 
+const cacheKey = 'all_pins';
+
 app.get('/auth/google',
     passport.authenticate('google', { scope: ['profile', 'email'] })
 );
@@ -177,24 +191,16 @@ app.get('/api/auth/status', (req, res) => {
 });
 
 app.get('/api/pins', async (req, res) => {
-    const cacheKey = 'all_pins';
 
     try {
-        let cachedData = null;
-
-        if(redisClient.isReady){
-            try {
-                cachedData = await  redisClient.get(cacheKey);
-            } catch (error) {
-                
-            }
-        }
+        let cachedData = await safeGet(cacheKey);
 
         if(cachedData){
             console.log('Serving from cache');
             return res.status(200).json(JSON.parse(cachedData));
         }
-
+        
+        console.log('Serving from database');
         const pins = await prisma.pin.findMany({
             include: {
                 author: {
@@ -202,10 +208,7 @@ app.get('/api/pins', async (req, res) => {
                 },
             },
         });
-        await redisClient.set(cacheKey, JSON.stringify(pins), {
-            EX: 600
-        });
-        console.log('Serving from database');
+        await safeSet(cachedData, cacheKey, { EX: 600 }); 
         res.status(200).json(pins);
     } catch (error) {
         res.status(500).json({ message: "Error fetching pins:", error: error.message });
@@ -281,6 +284,7 @@ app.delete('/api/pins/:pinId', isAuthenticated, async (req, res) => {
         await prisma.pin.delete({
             where: { id: pinId },
         });
+        await safeDel(cacheKey);
 
 
         res.status(200).json({ message: 'Pin deleted successfully' });
@@ -311,6 +315,8 @@ app.put('/api/pins/:pinId', isAuthenticated, async (req, res) => {
             where: { id: pinId },
             data: { description: description },
         });
+
+        await safeDel(cacheKey);
 
         res.status(200).json(updatedPin);
     } catch (error) {
