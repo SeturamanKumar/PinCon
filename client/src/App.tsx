@@ -9,7 +9,7 @@ import ProfilePage from "./components/ProfilePage";
 import AdminPage from "./components/AdminPage";
 
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-export const API_BASE_URL = isLocal ? 'http://localhost:3000' : 'https://pincon-server.onrender.com';
+export const API_BASE_URL = isLocal ? '' : 'https://pincon-server.onrender.com';
 
 export type PinType = {
   id: string;

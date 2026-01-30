@@ -14,19 +14,33 @@ const redisClient = createClient({
         connectTimeout: 2000,
     }
 });
+redisClient.connect().catch(console.error);
 redisClient.on('error', (err) => console.error('Redis Client Error'));
 async function safeGet(key){
     try {
-        if(!redisClient.isReady) return null;
+        if(!redisClient.isReady) {
+            return null;
+        }
+        return await redisClient.get(key);
     } catch (error) {
+        console.log('Cache error:', error.message);
         return null;
     }
 }
 async function safeSet(key, value, options){
     try {
         if(!redisClient.isReady) return;
-        await redisClient.set(key, value, options);
-    } catch (error) {}
+        let valueToSave;
+        if(typeof value === 'object'){
+            valueToSave = JSON.stringify(value);
+        } else {
+            valueToSave = String(value);
+        }
+
+        return await redisClient.set(key, JSON.stringify(value), options);
+    } catch (error) {
+        console.error(error.message);
+    }
 }
 async function safeDel(key){
     try {
@@ -39,6 +53,8 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const DatauriParser = require('datauri/parser');
 const path = require('path');
+const { type } = require('os');
+const { stringify } = require('querystring');
 
 const prisma = new PrismaClient();
 const app = express();
@@ -57,7 +73,7 @@ const multerUploads = multer({ storage }).single('image');
 const parser = new DatauriParser();
 
 app.use(cors({
-    origin: ['http://localhost:5173', process.env.CLIENT_URL],
+    origin: ['', process.env.CLIENT_URL],
     credentials: true,
 }));
 app.use(express.json());
@@ -162,8 +178,6 @@ passport.deserializeUser(async (id, done) => {
     }
 });
 
-const cacheKey = 'all_pins';
-
 app.get('/auth/google',
     passport.authenticate('google', { scope: ['profile', 'email'] })
 );
@@ -191,6 +205,7 @@ app.get('/api/auth/status', (req, res) => {
 });
 
 app.get('/api/pins', async (req, res) => {
+    const cacheKey = 'all_pins';
 
     try {
         let cachedData = await safeGet(cacheKey);
@@ -208,7 +223,7 @@ app.get('/api/pins', async (req, res) => {
                 },
             },
         });
-        await safeSet(cachedData, cacheKey, { EX: 600 }); 
+        await safeSet(cacheKey, pins, { EX: 600 }); 
         res.status(200).json(pins);
     } catch (error) {
         res.status(500).json({ message: "Error fetching pins:", error: error.message });
@@ -240,6 +255,8 @@ app.get('/api/my-pins', async (req, res) => {
 app.post('/api/pins', isAuthenticated, multerUploads, async (req, res) => {
     const { description } = req.body;
 
+    const cacheKey = 'all_pins';
+
     if(!req.file) {
         return res.status(400).json({ message: 'Image file is required' });
     }
@@ -256,7 +273,6 @@ app.post('/api/pins', isAuthenticated, multerUploads, async (req, res) => {
                 authorId: req.user.id,
             },
         });
-        console.log("Invalidating cache for 'all_pins'");
         await redisClient.del('all_pins');
         res.status(201).json(newPin);
     } catch (error) {
@@ -267,6 +283,7 @@ app.post('/api/pins', isAuthenticated, multerUploads, async (req, res) => {
 app.delete('/api/pins/:pinId', isAuthenticated, async (req, res) => {
     const { pinId } = req.params;
     const currentUser = req.user;
+    const cacheKey = 'all_pins';
 
     try {
         const pin  = await prisma.pin.findUnique({
