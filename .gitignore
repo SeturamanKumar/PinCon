@@ -29,3 +29,9 @@ server/node_modules
 npm-debug.log
 .DS-store
 docker-compose.override.yml
+
+# Security keys
+*.pem
+*.key
+*.crt
+certs/

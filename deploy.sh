@@ -22,5 +22,6 @@ echo "Moving new files to Nginx..."
 sudo cp -r dist/* /var/www/pincon/
 
 sudo chmod -R 755 /var/www/pincon
+sudo chown -R http:http /var/www/pincon
 
 echo "Deployment complete! Your updates are live at http://localhost"
