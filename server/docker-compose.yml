@@ -1,13 +1,28 @@
 services: 
-  api:
+  api_1:
     build: .
     ports:
-      - "3000:5001"
+      - "3001:3000"
     env_file:
       - .env
     environment:
       - REDIS_URL=redis://redis-db:6379
-    command: npm run dev
+    command: node server.js
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    depends_on:
+      redis-db:
+        condition: service_healthy
+  api_2:
+    build: .
+    ports:
+      - "3002:3000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis-db:6379
+    command: node server.js
     volumes:
       - ./:/app
       - /app/node_modules
