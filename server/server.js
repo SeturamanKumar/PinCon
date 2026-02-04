@@ -5,8 +5,21 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { PrismaClient } = require('@prisma/client');
 require('dotenv').config();
+const { S3Client, PutObjectCommand, Bucket$ } = require('@aws-sdk/client-s3');
+const { ListBucketsCommand } = require('@aws-sdk/client-s3');
 
+const s3Client = new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+        accessKeyId: process.env.AWS_SECRET_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    }
+});
+const BUCKET_NAME = process.env.AWS_BUCKET_NAME;
+
+const connectRedis = require('connect-redis');
 const { createClient } = require('redis');
+const RedisStore = connectRedis.RedisStore || connectRedis.default || connectRedis;
 const redisClient = createClient({
     url: process.env.REDIS_URL || 'redis://redis-db:6379',
     socket: {
@@ -49,9 +62,22 @@ async function safeDel(key){
     } catch (error) {}
 }
 
+const uploadToS3 = async (fileBuffer, folder, fileName, mimeType) => {
+    const key = `${folder}/${fileName}`;
+
+    const uploadParams = {
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: mimeType,
+    };
+
+    await s3Client.send(new PutObjectCommand(uploadParams));
+
+    return s3Url = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${folder}/${fileName}`;
+}
+
 const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
-const DatauriParser = require('datauri/parser');
 const path = require('path');
 const { type } = require('os');
 const { stringify } = require('querystring');
@@ -62,15 +88,8 @@ const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
 
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-})
-
 const storage = multer.memoryStorage();
 const multerUploads = multer({ storage }).single('image');
-const parser = new DatauriParser();
 
 app.use(cors({
     origin: ['', process.env.CLIENT_URL],
@@ -78,13 +97,14 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(session({
+    store: new RedisStore({ client: redisClient }),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-        sameSite: 'none',
+        secure: false,
+        sameSite: 'lax',
         maxAge: 1000 * 60 * 60 * 24 * 7,
     }
 }));
@@ -119,7 +139,7 @@ passport.use(new GoogleStrategy({
 
             const userEmail = profile.emails[0].value;
             const userName = profile.displayName;
-            const profileImageUrl = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
+            const googlePhotoUrl = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
 
             let user = await prisma.user.findUnique({
                 where: { email: userEmail },
@@ -129,25 +149,31 @@ passport.use(new GoogleStrategy({
                 name: userName,
             };
 
-            if(profileImageUrl) {
-                const uploadOptions = {
-                    overwrite: true,
-                };
-                if(user && user.profileImagePublicId) {
-                    uploadOptions.public_id = user.profileImagePublicId;
-                } else {
-                    uploadOptions.folder = 'pincon-profiles';
+            if(googlePhotoUrl) {
+                try {
+                    const response = await fetch(googlePhotoUrl);
+                    const arrayBuffer = await response.arrayBuffer();
+                    const buffer = Buffer.from(arrayBuffer);
+
+                    const fileName = `profiles/${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`;
+                    
+                    const uploadParams = {
+                        Bucket: BUCKET_NAME,
+                        Key: fileName,
+                        Body: buffer,
+                        ContentType: 'image/jpeg',
+                    };
+
+                    await s3Client.send(new PutObjectCommand(uploadParams));
+
+                    const s3Url = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+
+                    dataForDb.profileImageUrl = s3Url;
+                } catch (uploadError) {
+                    console.error('Failed to upload Google image to s3', uploadError);
                 }
-                uploadResult = await cloudinary.uploader.upload(profileImageUrl, uploadOptions);
-
-                dataForDb.profileImageUrl = uploadResult.secure_url;
-                dataForDb.profileImagePublicId = uploadResult.public_id;
-            } else if(user && user.profileImagePublicId) {
-                dataForDb.profileImageUrl = user.profileImageUrl;
-                dataForDb.profileImagePublicId = user.profileImagePublicId;
             }
-
-            if(user){
+            if(user) {
                 user = await prisma.user.update({
                     where: { email: userEmail },
                     data: dataForDb,
@@ -165,7 +191,7 @@ passport.use(new GoogleStrategy({
             console.error("Error in Google Strategy:", error);
             return done(error, null);
         }
-    }
+    }   
 ));
 
 passport.serializeUser((user, done) => { done(null, user.id); });
@@ -262,13 +288,13 @@ app.post('/api/pins', isAuthenticated, multerUploads, async (req, res) => {
     }
 
     try {
-        const file = parser.format(path.extname(req.file.originalname).toString(), req.file.buffer).content;
-        const result = await cloudinary.uploader.upload(file, {
-            folder: 'pincon',
-        });
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const extension = req.file.mimetype.split('/')[1] || 'jpg';
+        const filename = `post-${uniqueSuffix}.${extension}`;
+        const s3Url = await uploadToS3(req.file.buffer, 'post', filename, req.file.mimetype);
         const newPin = await prisma.pin.create({
             data: {
-                imageUrl: result.secure_url,
+                imageUrl: s3Url,
                 description: description,
                 authorId: req.user.id,
             },
@@ -354,11 +380,11 @@ app.put('/api/users/me', isAuthenticated, multerUploads, async (req, res) => {
         };
 
         if(req.file){
-            const file = parser.format(path.extname(req.file.originalname).toString(), req.file.buffer).content;
-            const result = await cloudinary.uploader.upload(file, {
-                folder: 'pincon-profiles',
-            });
-            dataToUpdate.profileImageUrl = result.secure_url;
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+            const extension = req.file.mimetype.split('/')[1] || 'jpg';
+            const filename = `post-${uniqueSuffix}.${extension}`;
+            const s3Url = await uploadToS3(req.file.buffer, 'profiles', filename, req.file.mimetype);
+            dataToUpdate.profileImageUrl = s3Url;
         }
         const updatedUser = await prisma.user.update({
             where: { id: userId },
@@ -377,5 +403,4 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server is running on port: ${PORT}`);
-    console.log('Hot reload is working');
 });
