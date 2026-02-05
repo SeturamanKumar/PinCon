@@ -31,4 +31,6 @@ model Pin {
   createdAt   DateTime @default(now())
   author      User     @relation(fields: [authorId], references: [id])
   authorId    String
+
+  @@index([authorId])
 }
